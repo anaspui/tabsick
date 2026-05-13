@@ -1,3 +1,15 @@
+const tabPromise = chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => tabs[0]);
+const dataPromise = tabPromise.then(async (tab) => {
+  if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('https://chrome.google.com/webstore')) {
+    return { tab, valid: false, notes: [], isReady: false };
+  }
+  const [notes, isReady] = await Promise.all([
+    StorageUtil.getNotes(tab.url),
+    checkContentScript(tab.id)
+  ]);
+  return { tab, valid: true, notes, isReady };
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
   const urlDisplay = document.getElementById('url-display');
   const noteCountEl = document.getElementById('note-count');
@@ -11,10 +23,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   let activeTab = null;
   let isHidden = false;
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  activeTab = tab;
+  const data = await dataPromise;
+  activeTab = data.tab;
 
-  if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('https://chrome.google.com/webstore')) {
+  if (!data.valid) {
     urlDisplay.textContent = 'Invalid Page';
     actionsDiv.style.display = 'none';
     statsDiv.style.display = 'none';
@@ -22,13 +34,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  const urlObj = new URL(tab.url);
+  const urlObj = new URL(activeTab.url);
   urlDisplay.textContent = urlObj.hostname + urlObj.pathname;
-  const notes = await StorageUtil.getNotes(tab.url);
-  noteCountEl.textContent = notes.length;
+  noteCountEl.textContent = data.notes.length;
 
-  const isContentScriptReady = await checkContentScript(tab.id);
-  if (!isContentScriptReady) {
+  if (!data.isReady) {
     errorMsg.textContent = "Please refresh the page to use TabStick here.";
     errorMsg.style.display = 'block';
     actionsDiv.style.opacity = '0.5';
