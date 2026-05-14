@@ -9,6 +9,10 @@ const NoteManager = (function() {
   };
   const THEME_KEYS = Object.keys(THEMES);
 
+  const EYE_OPEN_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  const EYE_CLOSED_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+  const CHECKLIST_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>`;
+
   const shadowStyle = `
     @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=DM+Sans:wght@400;500&display=swap');
 
@@ -80,6 +84,9 @@ const NoteManager = (function() {
     }
 
     textarea {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       box-sizing: border-box;
@@ -92,6 +99,76 @@ const NoteManager = (function() {
       line-height: 1.4;
       color: #333;
       outline: none;
+    }
+
+    .checklist-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      padding-bottom: 24px;
+      overflow-y: auto;
+      font-family: 'Caveat', cursive, sans-serif;
+      font-size: 20px;
+      color: #333;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .checklist-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .checklist-text {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+      line-height: 1.4;
+      min-width: 0;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+    .checklist-item.checked .checklist-text {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+    .add-item-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 18px;
+      color: rgba(0,0,0,0.5);
+      text-align: left;
+      padding: 4px 0;
+      margin-top: 4px;
+      outline: none;
+    }
+    .add-item-btn:hover {
+      color: #000;
+    }
+    .checklist-container::-webkit-scrollbar,
+    textarea::-webkit-scrollbar {
+      width: 6px;
+    }
+    .checklist-container::-webkit-scrollbar-thumb,
+    textarea::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.2);
+      border-radius: 3px;
     }
 
     .resize-handle {
@@ -136,6 +213,7 @@ const NoteManager = (function() {
       color: 'sunflower',
       content: '',
       minimized: false,
+      isChecklist: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       rotation: (Math.random() * 4) - 2 
@@ -144,6 +222,11 @@ const NoteManager = (function() {
     notesData.push(newNote);
     createNoteElement(newNote);
     saveNotesData();
+    
+    const host = noteElements.get(id);
+    if (host && !isHidden) {
+      focusNote(host);
+    }
   }
 
   function createNoteElement(note) {
@@ -174,9 +257,16 @@ const NoteManager = (function() {
     colorDot.className = 'color-dot';
     header.appendChild(colorDot);
 
+    const toggleChecklistBtn = document.createElement('button');
+    toggleChecklistBtn.className = 'btn';
+    toggleChecklistBtn.innerHTML = CHECKLIST_SVG;
+    toggleChecklistBtn.title = "Toggle Checklist";
+    header.appendChild(toggleChecklistBtn);
+
     const minBtn = document.createElement('button');
-    minBtn.className = 'btn';
-    minBtn.textContent = '─';
+    minBtn.className = 'btn min-btn';
+    minBtn.innerHTML = note.minimized ? EYE_CLOSED_SVG : EYE_OPEN_SVG;
+    minBtn.title = "Minimize/Show";
     header.appendChild(minBtn);
 
     const closeBtn = document.createElement('button');
@@ -191,6 +281,10 @@ const NoteManager = (function() {
     const textarea = document.createElement('textarea');
     textarea.value = note.content || '';
     bodyArea.appendChild(textarea);
+
+    const checklistContainer = document.createElement('div');
+    checklistContainer.className = 'checklist-container';
+    bodyArea.appendChild(checklistContainer);
 
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'resize-handle';
@@ -219,6 +313,132 @@ const NoteManager = (function() {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => saveNotesData(), 500);
     });
+
+    function renderChecklist() {
+      checklistContainer.innerHTML = '';
+      const items = textToChecklist(note.content || '');
+      
+      items.forEach((item, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = `checklist-item ${item.checked ? 'checked' : ''}`;
+        
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = item.checked;
+        
+        const textDiv = document.createElement('div');
+        textDiv.className = 'checklist-text';
+        textDiv.contentEditable = 'true';
+        textDiv.textContent = item.text;
+        
+        cb.addEventListener('change', () => {
+          item.checked = cb.checked;
+          if (cb.checked) itemDiv.classList.add('checked');
+          else itemDiv.classList.remove('checked');
+          updateNoteContentFromChecklist(items);
+        });
+        
+        textDiv.addEventListener('input', () => {
+          item.text = textDiv.textContent;
+          updateNoteContentFromChecklist(items);
+        });
+
+        textDiv.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            items.splice(index + 1, 0, { text: '', checked: false });
+            updateNoteContentFromChecklist(items);
+            renderChecklist();
+            const nextDiv = checklistContainer.children[index + 1]?.querySelector('.checklist-text');
+            if (nextDiv) {
+              nextDiv.focus();
+              const sel = host.shadowRoot.getSelection();
+              if (sel) {
+                 const range = document.createRange();
+                 range.selectNodeContents(nextDiv);
+                 range.collapse(true);
+                 sel.removeAllRanges();
+                 sel.addRange(range);
+              }
+            }
+          } else if (e.key === 'Backspace' && textDiv.textContent === '') {
+            e.preventDefault();
+            if (items.length > 1) {
+              items.splice(index, 1);
+              updateNoteContentFromChecklist(items);
+              renderChecklist();
+              const prevDiv = checklistContainer.children[Math.max(0, index - 1)]?.querySelector('.checklist-text');
+              if (prevDiv) {
+                prevDiv.focus();
+                const sel = host.shadowRoot.getSelection();
+                if (sel) {
+                  const range = document.createRange();
+                  range.selectNodeContents(prevDiv);
+                  range.collapse(false);
+                  sel.removeAllRanges();
+                  sel.addRange(range);
+                }
+              }
+            }
+          }
+        });
+
+        itemDiv.appendChild(cb);
+        itemDiv.appendChild(textDiv);
+        checklistContainer.appendChild(itemDiv);
+      });
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'add-item-btn';
+      addBtn.textContent = '+ Add item';
+      addBtn.addEventListener('click', () => {
+        items.push({ text: '', checked: false });
+        updateNoteContentFromChecklist(items);
+        renderChecklist();
+        const lastDiv = checklistContainer.lastElementChild.previousElementSibling.querySelector('.checklist-text');
+        if (lastDiv) {
+          lastDiv.focus();
+          const sel = host.shadowRoot.getSelection();
+          if (sel) {
+             const range = document.createRange();
+             range.selectNodeContents(lastDiv);
+             range.collapse(true);
+             sel.removeAllRanges();
+             sel.addRange(range);
+          }
+        }
+      });
+      checklistContainer.appendChild(addBtn);
+    }
+
+    function updateNoteContentFromChecklist(items) {
+      note.content = checklistToText(items);
+      note.updatedAt = Date.now();
+      textarea.value = note.content;
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => saveNotesData(), 500);
+    }
+
+    function applyChecklistState() {
+      if (note.isChecklist) {
+        textarea.style.display = 'none';
+        checklistContainer.style.display = 'flex';
+        renderChecklist();
+      } else {
+        textarea.style.display = 'block';
+        checklistContainer.style.display = 'none';
+      }
+    }
+
+    toggleChecklistBtn.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      bringToFront(host);
+      note.isChecklist = !note.isChecklist;
+      applyChecklistState();
+      saveNotesData();
+    });
+
+    applyChecklistState();
 
     colorDot.addEventListener('mousedown', (e) => {
       e.stopPropagation();
@@ -254,9 +474,11 @@ const NoteManager = (function() {
   }
 
   function applyMinimizedState(host, bodyArea, minimized) {
+    const minBtn = host.shadowRoot.querySelector('.min-btn');
     if (minimized) {
       bodyArea.style.display = 'none';
       host.style.height = '28px';
+      if(minBtn) minBtn.innerHTML = EYE_CLOSED_SVG;
     } else {
       bodyArea.style.display = 'block';
       const noteId = host.id;
@@ -264,6 +486,7 @@ const NoteManager = (function() {
       if (note) {
          host.style.height = note.height + 'px';
       }
+      if(minBtn) minBtn.innerHTML = EYE_OPEN_SVG;
     }
   }
 
@@ -372,9 +595,74 @@ const NoteManager = (function() {
 
   function toggleVisibility() {
     isHidden = !isHidden;
+    let topNoteElement = null;
+    let maxZ = -1;
     noteElements.forEach(el => {
       el.style.display = isHidden ? 'none' : 'block';
+      if (!isHidden) {
+        const z = parseInt(el.style.zIndex || 0);
+        if (z > maxZ) {
+          maxZ = z;
+          topNoteElement = el;
+        }
+      }
     });
+
+    if (!isHidden && topNoteElement) {
+      focusNote(topNoteElement);
+    }
+  }
+
+  function focusNote(host) {
+    if (!host) return;
+    setTimeout(() => {
+      const checklistContainer = host.shadowRoot.querySelector('.checklist-container');
+      if (checklistContainer && checklistContainer.style.display !== 'none') {
+        const texts = host.shadowRoot.querySelectorAll('.checklist-text');
+        if (texts.length > 0) {
+          const lastText = texts[texts.length - 1];
+          lastText.focus();
+          const sel = host.shadowRoot.getSelection();
+          if (sel) {
+            const range = document.createRange();
+            range.selectNodeContents(lastText);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        }
+      } else {
+        const textarea = host.shadowRoot.querySelector('textarea');
+        if (textarea) {
+          textarea.focus();
+          textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }
+      }
+    }, 10);
+  }
+
+  function textToChecklist(text) {
+    if (!text) return [{ text: '', checked: false }];
+    const lines = text.split('\n');
+    const items = [];
+    for (let line of lines) {
+      let checked = false;
+      let val = line;
+      if (val.startsWith('[x] ') || val.startsWith('[X] ')) {
+        checked = true;
+        val = val.substring(4);
+      } else if (val.startsWith('[ ] ')) {
+        checked = false;
+        val = val.substring(4);
+      }
+      items.push({ text: val, checked });
+    }
+    if (items.length === 0) items.push({ text: '', checked: false });
+    return items;
+  }
+
+  function checklistToText(items) {
+    return items.map(item => (item.checked ? '[x] ' : '[ ] ') + item.text).join('\n');
   }
 
   return {
