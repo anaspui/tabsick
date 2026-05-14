@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnImport = document.getElementById('btn-import');
   const fileImport = document.getElementById('file-import');
   const btnExplore = document.getElementById('btn-explore');
+  const toggleGlassMode = document.getElementById('toggle-glass-mode');
 
   let activeTab = null;
   let isHidden = false;
@@ -131,6 +132,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch (e) {
         console.error("Failed to clear notes:", e);
       }
+    }
+  });
+
+  const isGlassMode = await StorageUtil.getGlassMode();
+  toggleGlassMode.checked = isGlassMode;
+
+  toggleGlassMode.addEventListener('change', async (e) => {
+    const isChecked = e.target.checked;
+    await StorageUtil.setGlassMode(isChecked);
+    try {
+      await chrome.tabs.sendMessage(activeTab.id, { action: 'SET_GLASS_MODE', value: isChecked });
+    } catch (err) {
+      console.error("Failed to update glass mode:", err);
     }
   });
 

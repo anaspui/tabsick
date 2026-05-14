@@ -54,12 +54,23 @@ const StorageUtil = (function() {
     await chrome.storage.local.set(validData);
   }
 
+  async function getGlassMode() {
+    const res = await chrome.storage.local.get('setting::glassMode');
+    return res['setting::glassMode'] || false;
+  }
+
+  async function setGlassMode(value) {
+    await chrome.storage.local.set({ 'setting::glassMode': value });
+  }
+
   return {
     normalizeUrl,
     getNotes,
     saveNotes,
     clearNotes,
     getAllData,
-    importData
+    importData,
+    getGlassMode,
+    setGlassMode
   };
 })();

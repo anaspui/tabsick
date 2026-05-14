@@ -11,6 +11,9 @@
     const url = window.location.href;
     NoteManager.init(url);
 
+    const isGlassMode = await StorageUtil.getGlassMode();
+    NoteManager.setGlassMode(isGlassMode);
+
     const notes = await StorageUtil.getNotes(url);
     NoteManager.renderNotes(notes);
   }
@@ -27,6 +30,9 @@
       sendResponse({ success: true });
     } else if (request.action === 'GET_COUNT') {
       // alive???
+      sendResponse({ success: true });
+    } else if (request.action === 'SET_GLASS_MODE') {
+      NoteManager.setGlassMode(request.value);
       sendResponse({ success: true });
     }
   });

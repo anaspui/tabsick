@@ -187,7 +187,16 @@ const NoteManager = (function() {
   const noteElements = new Map();
   let currentUrl = '';
   let isHidden = false;
+  let isGlassMode = false;
   let currentZIndex = 100000;
+
+  function hexToRgba(hex, alpha) {
+    hex = hex.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
 
   function init(url) {
     currentUrl = url;
@@ -468,9 +477,46 @@ const NoteManager = (function() {
 
   function applyTheme(container, header, colorDot, colorKey) {
     const theme = THEMES[colorKey] || THEMES['sunflower'];
-    container.style.backgroundColor = theme.bg;
-    header.style.backgroundColor = theme.accent;
-    colorDot.style.backgroundColor = theme.bg;
+    if (isGlassMode) {
+      container.style.backgroundColor = hexToRgba(theme.bg, 0.25);
+      container.style.backdropFilter = 'blur(24px) saturate(180%)';
+      container.style.webkitBackdropFilter = 'blur(24px) saturate(180%)';
+      container.style.border = `1px solid rgba(255, 255, 255, 0.3)`;
+      container.style.boxShadow = 'inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 8px 32px rgba(0, 0, 0, 0.15)';
+      header.style.backgroundColor = hexToRgba(theme.accent, 0.3);
+      colorDot.style.backgroundColor = hexToRgba(theme.bg, 0.8);
+      colorDot.style.border = '1px solid rgba(255, 255, 255, 0.5)';
+    } else {
+      container.style.backgroundColor = theme.bg;
+      container.style.backdropFilter = 'none';
+      container.style.webkitBackdropFilter = 'none';
+      container.style.border = 'none';
+      container.style.boxShadow = 'none';
+      header.style.backgroundColor = theme.accent;
+      colorDot.style.backgroundColor = theme.bg;
+      colorDot.style.border = '1px solid rgba(0,0,0,0.1)';
+    }
+  }
+
+  function updateAllThemes() {
+    noteElements.forEach((host, id) => {
+      const note = notesData.find(n => n.id === id);
+      if (note) {
+        const container = host.shadowRoot.querySelector('.note-container');
+        const header = host.shadowRoot.querySelector('.header-bar');
+        const colorDot = host.shadowRoot.querySelector('.color-dot');
+        if (container && header && colorDot) {
+          applyTheme(container, header, colorDot, note.color);
+        }
+      }
+    });
+  }
+
+  function setGlassMode(value) {
+    if (isGlassMode !== value) {
+      isGlassMode = value;
+      updateAllThemes();
+    }
   }
 
   function applyMinimizedState(host, bodyArea, minimized) {
@@ -670,6 +716,7 @@ const NoteManager = (function() {
     renderNotes,
     createNewNote,
     clearAll,
-    toggleVisibility
+    toggleVisibility,
+    setGlassMode
   };
 })();
