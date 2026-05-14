@@ -53,8 +53,13 @@ h1 {
   margin: 0;
 }
 
+.search-container {
+  display: flex;
+  gap: 8px;
+}
+
 .search-container input {
-  width: 100%;
+  flex: 1;
   padding: 10px 14px;
   background: var(--surface-color);
   border: 1px solid var(--border-color);
@@ -67,6 +72,28 @@ h1 {
 
 .search-container input:focus {
   border-color: var(--accent-color);
+}
+
+.btn-group {
+  padding: 10px 16px;
+  background: var(--accent-color);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-group:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-group:active {
+  transform: translateY(0);
 }
 
 .notes-container {

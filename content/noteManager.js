@@ -449,6 +449,14 @@ const NoteManager = (function() {
 
     applyChecklistState();
 
+    header.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      bringToFront(host);
+      note.minimized = !note.minimized;
+      applyMinimizedState(host, bodyArea, note.minimized);
+      saveNotesData();
+    });
+
     colorDot.addEventListener('mousedown', (e) => {
       e.stopPropagation();
       bringToFront(host);
