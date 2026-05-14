@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Explore Notes</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-title">
+      <img src="../assets/icons/icon48.png" alt="Logo" class="logo">
+      <h1>Explore</h1>
+    </div>
+    <div class="search-container">
+      <input type="text" id="search-input" placeholder="Search notes or URLs...">
+    </div>
+  </div>
+
+  <div id="notes-container" class="notes-container">
+    <!-- Notes will be injected here -->
+  </div>
+
+  <div id="empty-state" class="empty-state" style="display: none;">
+    No notes found.
+  </div>
+
+  <script src="../utils/storage.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

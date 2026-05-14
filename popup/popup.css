@@ -154,3 +154,20 @@ h1 {
   border-radius: 8px;
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
+
+.divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 16px 0;
+}
+
+.data-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.data-actions .btn {
+  flex: 1;
+  padding: 8px;
+  font-size: 13px;
+}

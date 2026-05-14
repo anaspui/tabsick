@@ -20,11 +20,20 @@
   <div class="actions">
     <button id="btn-add" class="btn btn-primary">+ Add Note</button>
     <button id="btn-toggle" class="btn btn-secondary">Hide Notes</button>
+    <button id="btn-explore" class="btn btn-secondary">Explore Notes</button>
     <button id="btn-clear" class="btn btn-danger">Clear All</button>
   </div>
   
   <div class="error-msg" id="error-msg" style="display: none;">
     Notes are not available on this page.
+  </div>
+
+  <div class="divider"></div>
+  
+  <div class="data-actions">
+    <button id="btn-export" class="btn btn-secondary" title="Export all notes">Export Data</button>
+    <button id="btn-import" class="btn btn-secondary" title="Import notes">Import Data</button>
+    <input type="file" id="file-import" accept=".json" style="display: none;">
   </div>
 
   <script src="../utils/storage.js"></script>

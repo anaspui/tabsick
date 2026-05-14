@@ -19,12 +19,71 @@ document.addEventListener('DOMContentLoaded', async () => {
   const actionsDiv = document.querySelector('.actions');
   const statsDiv = document.getElementById('stats');
   const errorMsg = document.getElementById('error-msg');
+  const btnExport = document.getElementById('btn-export');
+  const btnImport = document.getElementById('btn-import');
+  const fileImport = document.getElementById('file-import');
+  const btnExplore = document.getElementById('btn-explore');
 
   let activeTab = null;
   let isHidden = false;
 
   const data = await dataPromise;
   activeTab = data.tab;
+
+  btnExport.addEventListener('click', async () => {
+    try {
+      const allData = await StorageUtil.getAllData();
+      const dataStr = JSON.stringify(allData, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tabstick-backup.json';
+      a.click();
+      
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Failed to export data:", e);
+      alert("Failed to export data.");
+    }
+  });
+
+  btnImport.addEventListener('click', () => {
+    fileImport.click();
+  });
+
+  if (btnExplore) {
+    btnExplore.addEventListener('click', async () => {
+      try {
+        const windowInfo = await chrome.windows.getCurrent();
+        await chrome.sidePanel.open({ windowId: windowInfo.id });
+        window.close();
+      } catch (e) {
+        console.error("Failed to open side panel:", e);
+      }
+    });
+  }
+
+  fileImport.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const importedData = JSON.parse(event.target.result);
+        await StorageUtil.importData(importedData);
+        alert("Data imported successfully!");
+        window.close();
+      } catch (err) {
+        console.error("Import failed:", err);
+        alert("Failed to import data: " + err.message);
+      }
+      fileImport.value = ''; 
+    };
+    reader.readAsText(file);
+  });
 
   if (!data.valid) {
     urlDisplay.textContent = 'Invalid Page';

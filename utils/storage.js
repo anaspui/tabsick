@@ -28,10 +28,38 @@ const StorageUtil = (function() {
     await chrome.storage.local.remove(key);
   }
 
+  async function getAllData() {
+    const data = await chrome.storage.local.get(null);
+    const notesData = {};
+    for (const key in data) {
+      if (key.startsWith('notes::')) {
+        notesData[key] = data[key];
+      }
+    }
+    return notesData;
+  }
+
+  async function importData(importedData) {
+    if (typeof importedData !== 'object' || importedData === null) {
+      throw new Error("Invalid import data format.");
+    }
+    
+    const validData = {};
+    for (const key in importedData) {
+      if (key.startsWith('notes::') && Array.isArray(importedData[key])) {
+        validData[key] = importedData[key];
+      }
+    }
+    
+    await chrome.storage.local.set(validData);
+  }
+
   return {
     normalizeUrl,
     getNotes,
     saveNotes,
-    clearNotes
+    clearNotes,
+    getAllData,
+    importData
   };
 })();
